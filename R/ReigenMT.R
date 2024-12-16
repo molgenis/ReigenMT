@@ -167,7 +167,8 @@ find_number_of_eigen <- function(eigenvalues, n_variants, var_explained_threshol
   eigenvalues_sum <- 0
   # and keep track of how many eigenvalues we need
   eigenvalue_i <- 0
-  while(eigenvalues_sum < total_variance_explained) {
+  # now keep adding eigenvalues until we either get to the variance threshold, or run out of eigenvalues
+  while((eigenvalue_i != length(eigenvalues)) & (eigenvalues_sum < total_variance_explained)) {
     # update number first
     eigenvalue_i <- eigenvalue_i + 1
     # then add to the sum
@@ -211,37 +212,46 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
     sumstats_feature <- sumstats_feature[order(variant_positions), ]
     # extract variants for this feature
     variants_feature <- sumstats_feature[[variant_column_summary_stats]]
+    # get the number of variants
+    nvariants <- length(variants_feature)
     # we'll check multiple windows, so we need to take into account the number of effects per window
     n_effects_windows <- 0
-    # initialize the start and stop
-    start <- 1
-    end <- start + window_size - 1
-    nvariants <- length(variants_feature)
-    while(start < nvariants) {
-      # if we are at the last variant set, we cannot do the full window
-      if (end > nvariants) {
-        end <- nvariants
-      }
-      # get the variants
-      variants_window <- variants_feature[start : end]
-      # now subset the genotype data to those variants
-      variant_genotypes <- subset_genotypes(genotypes, variants_window)
-      # get the eigenvalues for those variants
-      variant_eigenvalues <- genotypes_to_eigenvalues(variant_genotypes)
-      # check for NA, which is perfect LD
-      n_tests <- NULL
-      if (length(variant_eigenvalues) == 1) {
-        n_tests <- 1
-      }
-      else {
-        # get the number of eigenvalues we need
-        n_tests <- find_number_of_eigen(eigenvalues = variant_eigenvalues, n_variants = length(variants_window), var_explained_threshold = var_explained_threshold, verbose = F)
-      }
-      # add that to the number of tests
-      n_effects_windows <- n_effects_windows + n_tests
-      # increase the start and stop
-      start <- start + window_size
+    # but only if we have multiple variants
+    if (nvariants > 1) {
+      # initialize the start and stop
+      start <- 1
       end <- start + window_size - 1
+      
+      while(start < nvariants) {
+        # if we are at the last variant set, we cannot do the full window
+        if (end > nvariants) {
+          end <- nvariants
+        }
+        # get the variants
+        variants_window <- variants_feature[start : end]
+        # now subset the genotype data to those variants
+        variant_genotypes <- subset_genotypes(genotypes, variants_window)
+        # get the eigenvalues for those variants
+        variant_eigenvalues <- genotypes_to_eigenvalues(variant_genotypes)
+        # check for NA, which is perfect LD
+        n_tests <- NULL
+        if (length(variant_eigenvalues) == 1) {
+          n_tests <- 1
+        }
+        else {
+          # get the number of eigenvalues we need
+          n_tests <- find_number_of_eigen(eigenvalues = variant_eigenvalues, n_variants = length(variants_window), var_explained_threshold = var_explained_threshold, verbose = F)
+        }
+        # add that to the number of tests
+        n_effects_windows <- n_effects_windows + n_tests
+        # increase the start and stop
+        start <- start + window_size
+        end <- start + window_size - 1
+      }
+    }
+    # otherwise it is just one effect
+    else {
+      n_effects_windows <- 1
     }
     # add this number of tests to the summary stats
     sumstats_feature[, ('n_tests_feature') := rep(n_effects_windows, times = nrow(sumstats_feature))]
