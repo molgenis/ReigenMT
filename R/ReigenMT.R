@@ -108,9 +108,12 @@ genotypes_to_eigenvalues <- function(genotypes, verbose = F) {
     warning(paste('not recognizing genotype format, assuming matrix-compatible'))
     genotypes_t <- data.table(t(genotypes))
   }
+  # Redirect output to null to suppress print statements
+  sink(tempfile())
+  # Ensure to reset sink after function execution
+  on.exit(sink())
   # make into double
   genotypes_t[, (names(genotypes_t)) := lapply(.SD, function(x){as.double(x)})]
-  print(genotypes_t)
   # get the means of each column
   var_means <- colMeans(genotypes_t, na.rm = T)
   # make var means into list
@@ -259,6 +262,7 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
     }
     # add this number of tests to the summary stats
     sumstats_feature[, ('n_tests_feature') := rep(n_effects_windows, times = nrow(sumstats_feature))]
+    return(sumstats_feature)
   })
   # combine across features
   corrected_all <- do.call('rbind', corrected_per_feature)
