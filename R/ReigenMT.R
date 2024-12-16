@@ -1,3 +1,23 @@
+limix_h5_to_sumstats_format <- function(h5_loc) {
+  # get the contents
+  h5_contents <- data.frame(h5ls(h5_loc))
+  # put in a list
+  all_features <- list()
+  # check each feature
+  for (feature in h5_contents[['name']]) {
+    # get the data
+    feature_dt <- data.table(h5read(h5_loc, feature))
+    # add the feature as a column
+    feature_dt[, ('feature') := rep(feature, times = nrow(feature_dt))]
+    # put in the list
+    all_features[[feature]] <- feature_dt
+  }
+  # merge all of them
+  all_features_dt <- do.call('rbind', all_features)
+  return(all_features_dt)
+}
+
+
 get_position_hashtab <- function(feature_to_position, var_column, pos_column) {
   # make the hash table
   feature_to_position_hash <- r2r::hashmap()
@@ -10,16 +30,26 @@ get_position_hashtab <- function(feature_to_position, var_column, pos_column) {
       feature_to_position_hash[[feature]] <- pos
     }
   }
-  # if a list convert from that
+  # other formats
+  else if ((is.list(genotypes)) & (class(genotypes$genotypes) == 'SnpMatrix')) {
+    # get this information from the map
+    for (i in 1 : nrow(genotypes$map)) {
+      feature_to_position_hash[[genotypes$map$snp.name[i]]] <- genotypes$map$position[i]
+    }
+  }
+  # if a conventional list convert from that
   else if (is.list(feature_to_position)) {
     # convert
     for (var_name in names(feature_to_position)) {
       feature_to_position_hash[[var_name]] <- feature_to_position[[var_name]]
     }
   }
-  # other formats
-  else if (F == T){
-    
+  else {
+    warning('could not interpret as a known filetype, will try a list-like approach')
+    # convert
+    for (var_name in names(feature_to_position)) {
+      feature_to_position_hash[[var_name]] <- feature_to_position[[var_name]]
+    }
   }
   return(feature_to_position_hash)
 }
@@ -42,8 +72,14 @@ subset_genotypes <- function(genotypes, variants, id_column='ID') {
     genotypes_subset[, c(id_column):=NULL]
   }
   # if plink
-  else if (F == T) {
-    
+  else if ((is.list(genotypes)) & (class(genotypes$genotypes) == 'SnpMatrix')) {
+    # get the indices that we want to keep
+    keep_indices <- genotypes$map$snp.name %in% variants
+    genotypes_subset <- list(
+      'fam' = genotypes$fam, 
+      'map' = genotypes$map[keep_indices, ], 
+      'genotypes' = genotypes$genotypes[, keep_indices]
+    )
   }
   # otherwise assume we can convert to data.table
   else {
@@ -64,8 +100,8 @@ genotypes_to_eigenvalues <- function(genotypes, verbose = F) {
     genotypes_t <- data.table(t(genotypes))
   }
   # or if in plink format
-  else if(F == T) {
-    
+  else if(is.list(genotypes) & class(genotypes$genotypes) == 'SnpMatrix') {
+    genotypes_t <- data.table(as(genotypes$genotypes, "numeric"))
   }
   # we'll assume is a matrix-compatible format
   else {
@@ -74,6 +110,7 @@ genotypes_to_eigenvalues <- function(genotypes, verbose = F) {
   }
   # make into double
   genotypes_t[, (names(genotypes_t)) := lapply(.SD, function(x){as.double(x)})]
+  print(genotypes_t)
   # get the means of each column
   var_means <- colMeans(genotypes_t, na.rm = T)
   # make var means into list
@@ -106,8 +143,14 @@ genotypes_to_eigenvalues <- function(genotypes, verbose = F) {
   # Calculate the shrunk correlation matrix
   shrunk_cor <- shrunk_precision %*% shrunk_cov %*% shrunk_precision
   # Compute the eigenvalues of the regularized (shrinkage) covariance matrix
-  #eigenvalues <- eigen(shrunk_cor, symmetric = T)$values
-  eigenvalues <- RSpectra::eigs_sym(as(shrunk_cor, "dgCMatrix"), k = ncol(shrunk_cor)-1, retvec = F)$values # k is the number of observations-1 so that we get almost all eigenvectors without it defaulting to eigs
+  eigenvalues <- NULL
+  # eigen_sym needs at least 3x3
+  if (nrow(shrunk_cor) > 2) {
+    eigenvalues <- RSpectra::eigs_sym(as(shrunk_cor, "dgCMatrix"), k = ncol(shrunk_cor)-1, retvec = F)$values # k is the number of observations-1 so that we get almost all eigenvectors without it defaulting to eigs
+  }
+  else {
+    eigenvalues <- eigen(shrunk_cor, symmetric = T)$values
+  }
   # order them in opposite
   eigenvalues <- sort(eigenvalues, decreasing = T)
   # Set negative eigenvalues to zero
@@ -143,9 +186,13 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
   if (is.hashtab(genotype_to_position)) {
     genotype_to_pos_hm <- genotype_to_position
   }
-  # otherwise make genotype to position into hashmap
-  else{
+  # otherwise make genotype to position into hashmap 
+  else if(!is.null(genotype_to_position) & !is.hashtab(genotype_to_position)){
     genotype_to_pos_hm <- get_position_hashtab(genotype_to_position, genotype_var_position_column, genotype_position_column)
+  }
+  # if no positions supplied, but we have plink format, we can interpret it ourselves
+  else if(is.null(genotype_to_position) & is.list(genotypes) & class(genotypes$genotypes) == 'SnpMatrix') {
+    genotype_to_pos_hm <- get_position_hashtab(genotypes)
   }
   # get the unique features
   unique_features <- unique(summary_stats[[feature_column_summary_stats]])
@@ -188,14 +235,7 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
       }
       else {
         # get the number of eigenvalues we need
-        n_tests <- NULL
-        if (start ==1) {
-          n_tests <- find_number_of_eigen(eigenvalues = variant_eigenvalues, n_variants = length(variants_window), var_explained_threshold = var_explained_threshold, verbose = T)
-        }
-        else {
-          n_tests <- find_number_of_eigen(eigenvalues = variant_eigenvalues, n_variants = length(variants_window), var_explained_threshold = var_explained_threshold, verbose = F)
-        }
-        
+        n_tests <- find_number_of_eigen(eigenvalues = variant_eigenvalues, n_variants = length(variants_window), var_explained_threshold = var_explained_threshold, verbose = F)
       }
       # add that to the number of tests
       n_effects_windows <- n_effects_windows + n_tests
@@ -210,4 +250,3 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
   corrected_all <- do.call('rbind', corrected_per_feature)
   return(corrected_all)
 }
-

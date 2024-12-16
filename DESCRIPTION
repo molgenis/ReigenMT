@@ -14,3 +14,4 @@ Imports:
 	snpStats
 	RSpectra
 	r2r
+	rhdf5
