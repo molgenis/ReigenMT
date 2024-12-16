@@ -174,6 +174,10 @@ find_number_of_eigen <- function(eigenvalues, n_variants, var_explained_threshol
     # then add to the sum
     eigenvalues_sum <- eigenvalues_sum + eigenvalues[eigenvalue_i]
   }
+  # if we didnt explain all variance, all effects were independent, and we need one more
+  if (eigenvalues_sum < total_variance_explained) {
+    eigenvalue_i <- eigenvalue_i + 1
+  }
   return(eigenvalue_i)
 }
 
