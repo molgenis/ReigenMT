@@ -1,7 +1,7 @@
 Package: ReigenMT
 Title: R implementation of eigenMT algorithm for multiple testing correction
 Version: 0.0.0.1
-Authors@R: 
+Authors@R:
     person("Roy", "Oelen", , "roy.oelen@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-5026-6531"))
 Description: R implementation of eigenMT algorithm for multiple testing correction
@@ -10,11 +10,11 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports:
-	data.table
-	snpStats
-	spam
-	r2r
+	data.table,
+	snpStats,
+	spam,
+	r2r,
 	rhdf5
-Suggests: 
+Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
