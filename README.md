@@ -24,6 +24,15 @@ ReigenMT can be installed via devtools::install_github in the following manner:
 devtools::install_github("https://github.com/molgenis/ReigenMT");
 ```
 
+The library requires the rhdf5 and snpStats libraries, which are not in CRAN, but on bioconductor. You can install them as such:
+
+```r
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("snpStats")
+BiocManager::install("rhdf5")
+```
+
 ## usage
 
 For MatrixEQTL data, the package can be used as follows:

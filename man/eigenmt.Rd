@@ -7,7 +7,7 @@
 eigenmt(
   summary_stats,
   genotypes,
-  genotype_to_position,
+  genotype_to_position = NULL,
   variant_column_summary_stats = "SNP",
   feature_column_summary_stats = "gene",
   pvalue_column = "p-value",
@@ -22,7 +22,7 @@ eigenmt(
 
 \item{genotypes}{A data.table, data.frame, matrix, or list containing genotype data.}
 
-\item{genotype_to_position}{A data.table, data.frame, list, or hash table mapping genotypes to positions.}
+\item{genotype_to_position}{A data.table, data.frame, list, or hash table mapping genotypes to positions. If not supplied, and the genotype object is plink, it can be created on-the-fly. Default is NULL.}
 
 \item{variant_column_summary_stats}{A string specifying the column name for variants in the summary statistics. Default is 'SNP'.}
 
