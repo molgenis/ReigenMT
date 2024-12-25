@@ -65,7 +65,7 @@ get_position_hashtab <- function(feature_to_position, var_column, pos_column) {
     }
   }
   # other formats
-  else if ((is.list(feature_to_position)) & (class(feature_to_position$feature_to_position) == 'SnpMatrix')) {
+  else if ((is.list(feature_to_position)) & (class(feature_to_position$genotypes) == 'SnpMatrix')) {
     # get this information from the map
     for (i in 1 : nrow(feature_to_position$map)) {
       feature_to_position_hash[[feature_to_position$map$snp.name[i]]] <- feature_to_position$map$position[i]
