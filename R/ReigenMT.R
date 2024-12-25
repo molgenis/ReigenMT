@@ -279,7 +279,7 @@ find_number_of_eigen <- function(eigenvalues, n_variants, var_explained_threshol
 #'
 #' @param summary_stats A data.table or data.frame containing summary statistics.
 #' @param genotypes A data.table, data.frame, matrix, or list containing genotype data.
-#' @param genotype_to_position A data.table, data.frame, list, or hash table mapping genotypes to positions.
+#' @param genotype_to_position A data.table, data.frame, list, or hash table mapping genotypes to positions. If not supplied, and the genotype object is plink, it can be created on-the-fly. Default is NULL. 
 #' @param variant_column_summary_stats A string specifying the column name for variants in the summary statistics. Default is 'SNP'.
 #' @param feature_column_summary_stats A string specifying the column name for features in the summary statistics. Default is 'gene'.
 #' @param pvalue_column A string specifying the column name for p-values in the summary statistics. Default is 'p-value'.
@@ -299,7 +299,7 @@ find_number_of_eigen <- function(eigenvalues, n_variants, var_explained_threshol
 #' corrected_stats <- eigenmt(summary_stats, genotypes, genotype_to_position)
 #' print(corrected_stats)
 #' }
-eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_column_summary_stats='SNP', feature_column_summary_stats='gene', pvalue_column='p-value', genotype_position_column='pos', genotype_var_position_column='snp', var_explained_threshold=.975, window_size=100) {
+eigenmt <- function(summary_stats, genotypes, genotype_to_position=NULL, variant_column_summary_stats='SNP', feature_column_summary_stats='gene', pvalue_column='p-value', genotype_position_column='pos', genotype_var_position_column='snp', var_explained_threshold=.975, window_size=100) {
   # if not a data.table, make it one
   if (!is.data.table(summary_stats)) {
     summary_stats <- data.table(summary_stats)
