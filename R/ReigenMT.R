@@ -23,7 +23,7 @@ limix_h5_to_sumstats_format <- function(h5_loc) {
   # check each feature
   for (feature in h5_contents[['name']]) {
     # get the data
-    feature_dt <- data.table::data.table(h5read(h5_loc, feature))
+    feature_dt <- data.table::data.table(rhdf5::h5read(h5_loc, feature))
     # add the feature as a column
     feature_dt[, ('feature') := rep(feature, times = nrow(feature_dt))]
     # put in the list
