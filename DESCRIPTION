@@ -12,6 +12,9 @@ RoxygenNote: 7.3.2
 Imports:
 	data.table
 	snpStats
-	RSpectra
+	spam
 	r2r
 	rhdf5
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
