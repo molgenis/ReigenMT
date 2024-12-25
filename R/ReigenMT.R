@@ -162,7 +162,7 @@ subset_genotypes <- function(genotypes, variants, id_column='ID', strip_id=T) {
 #' @return A vector of eigenvalues of the shrinkage covariance matrix.
 #' @import data.table
 #' @importFrom corpcor cov.shrink
-#' @importFrom spam eigen.spam
+#' @importFrom spam eigen.spam as.spam
 #' @importFrom stats cov2cor
 #' @export
 #' @examples
@@ -224,15 +224,7 @@ genotypes_to_eigenvalues <- function(genotypes, verbose = F) {
   # Calculate the shrunk correlation matrix
   shrunk_cor <- shrunk_precision %*% shrunk_cov %*% shrunk_precision
   # Compute the eigenvalues of the regularized (shrinkage) covariance matrix
-  eigenvalues <- NULL
-  # eigen_sym needs at least 3x3
-  # if (nrow(shrunk_cor) > 100) {
-  #   eigenvalues <- RSpectra::eigs_sym(as(shrunk_cor, "dgCMatrix"), k = ncol(shrunk_cor)-1, retvec = F)$values # k is the number of observations-1 so that we get almost all eigenvectors without it defaulting to eigs
-  # }
-  # else {
-  #   eigenvalues <- eigen(shrunk_cor, symmetric = T)$values
-    eigenvalues <- spam::eigen.spam(shrunk_cor, nev = ncol(shrunk_cor), symmetric = T)$values
-  # }
+  eigenvalues <- spam::eigen.spam(spam::as.spam(shrunk_cor), nev = ncol(shrunk_cor), symmetric = T)$values
   # order them in opposite
   eigenvalues <- sort(eigenvalues, decreasing = T)
   # Set negative eigenvalues to zero
