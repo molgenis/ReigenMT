@@ -287,7 +287,7 @@ find_number_of_eigen <- function(eigenvalues, n_variants, var_explained_threshol
 #' @param genotype_var_position_column A string specifying the column name for variant positions in the genotype data. Default is 'snp'.
 #' @param var_explained_threshold A numeric value indicating the threshold of variance to be explained. Default is 0.975.
 #' @param window_size An integer specifying the window size for checking multiple variants. Default is 100.
-#' @return A data.table with the corrected summary statistics, including the number of tests per feature.
+#' @return A data.table with the corrected summary statistics, including the number of tests per feature, the bonferroni corrected p-value considering the number of tests of that feature, and the bonferroni corrected p-value considering all independent tests across all features
 #' @import data.table
 #' @importFrom pbapply pblapply
 #' @export
@@ -321,7 +321,7 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
   unique_features <- unique(summary_stats[[feature_column_summary_stats]])
   # remove any NA we might have
   unique_features <- unique_features[!is.na(unique_features)]
-  message(paste('found', length(unique_features)), 'unique features')
+  message(paste('found', length(unique_features), 'unique features'))
   # do a pblapply
   corrected_per_feature <- pbapply::pblapply(unique_features, function(x) {
     # get the entries with this feature
@@ -330,6 +330,10 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
     variants_feature <- sumstats_feature[[variant_column_summary_stats]]
     # get the position
     variant_positions <- as.vector(unlist(genotype_to_position[variants_feature]))
+    # check if we found all variants
+    if (length(variants_feature) != length(variant_positions)) {
+      warning(paste('variants in summary stats present, that are not in the position matrix, these will be dropped!'))
+    }
     # order the sumstats by this position
     sumstats_feature <- sumstats_feature[order(variant_positions), ]
     # extract variants for this feature
@@ -381,5 +385,15 @@ eigenmt <- function(summary_stats, genotypes, genotype_to_position, variant_colu
   })
   # combine across features
   corrected_all <- do.call('rbind', corrected_per_feature)
+  # add the eigen bf per feature1
+  corrected_all[['feature_bf_eigen']] <- corrected_all[[pvalue_column]] * corrected_all[['n_tests_feature']]
+  # but make what is more than 1, to be 1
+  corrected_all[corrected_all[['feature_bf_eigen']] > 1, 'feature_bf_eigen'] <- 1
+  # get the total of tests, so the sum of all the independent tests across features
+  tot_independent_tests <- sum(corrected_all[!duplicated(corrected_all[[feature_column_summary_stats]]), 'n_tests_feature'])
+  # add that as the correction factor
+  corrected_all[['total_bf_eigen']] <- corrected_all[[pvalue_column]] * tot_independent_tests
+  # and turn all over 1, into 1
+  corrected_all[corrected_all[['total_bf_eigen']] > 1, 'total_bf_eigen'] <- 1
   return(corrected_all)
 }
