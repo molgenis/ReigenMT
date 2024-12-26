@@ -208,9 +208,12 @@ genotypes_to_eigenvalues <- function(genotypes, verbose = F) {
   # get the correlation matrix
   cor_shrink <- stats::cov2cor(fitted)
   # get the sum of values that are perfect
-  number_of_perfects <- sum(cor_shrink == 1)
+  number_of_perfects <- sum(!is.na(cor_shrink) & cor_shrink == 1)
+  # get the number of non-NA n_effects_windows
+  number_of_nonna <- sum(!is.na(cor_shrink))
+
   # that means perfect LD, which is just one effect
-  if (number_of_perfects == (ncol(cor_shrink) * nrow(cor_shrink))) {
+  if (number_of_perfects == number_of_nonna) {
     return(NA)
   }
   # Extract the shrinkage covariance matrix
@@ -279,7 +282,7 @@ find_number_of_eigen <- function(eigenvalues, n_variants, var_explained_threshol
 #'
 #' @param summary_stats A data.table or data.frame containing summary statistics.
 #' @param genotypes A data.table, data.frame, matrix, or list containing genotype data.
-#' @param genotype_to_position A data.table, data.frame, list, or hash table mapping genotypes to positions. If not supplied, and the genotype object is plink, it can be created on-the-fly. Default is NULL. 
+#' @param genotype_to_position A data.table, data.frame, list, or hash table mapping genotypes to positions. If not supplied, and the genotype object is plink, it can be created on-the-fly. Default is NULL.
 #' @param variant_column_summary_stats A string specifying the column name for variants in the summary statistics. Default is 'SNP'.
 #' @param feature_column_summary_stats A string specifying the column name for features in the summary statistics. Default is 'gene'.
 #' @param pvalue_column A string specifying the column name for p-values in the summary statistics. Default is 'p-value'.
