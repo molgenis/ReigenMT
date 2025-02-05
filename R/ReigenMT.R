@@ -226,6 +226,11 @@ genotypes_to_eigenvalues <- function(genotypes, verbose = F) {
   shrunk_precision <- diag(inv_sqrt_variances)
   # Calculate the shrunk correlation matrix
   shrunk_cor <- shrunk_precision %*% shrunk_cov %*% shrunk_precision
+  # check for NA
+  if (sum(is.na(shrunk_cor)) > 0) {
+    warning('NA values found in correlation matrix. These will be set to zero. This might lead to an overestimation of the number of independent effects\n')
+    shrunk_cor[is.na(shrunk_cor)] <- 0
+  }
   # Compute the eigenvalues of the regularized (shrinkage) covariance matrix
   eigenvalues <- spam::eigen.spam(spam::as.spam(shrunk_cor), nev = ncol(shrunk_cor), symmetric = T)$values
   # order them in opposite
